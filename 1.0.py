@@ -8,14 +8,17 @@ class Projekt:
         self.cursor = self.conn.cursor()
         self.mail = mail
         while(True):
-            initial_choice = input('___________________\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
+            initial_choice = input('___________________\nHome page\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
                 
             if (initial_choice == 'L'):
                 self.login()
-                # TODO: totaj kolejny wybor co chce robic
-                choice = input('___________________\nWELCOME\n|  A - Add a friend|  Q - Quit  |\nYour choice: ').upper()
+                # TODO: what to do after successul login
+                choice = input('___________________\nMain menu\n|  A - Add a friend  |  L - List your friends  |  Q - Quit  |\nYour choice: ').upper()
                 if (choice == 'A'):
                     self.addFriend(mail)
+                
+                if (choice == "L"):
+                    self.printFriend(mail)
                     
                 if (choice == 'Q'):
                     print('Bye, bye!')
@@ -94,14 +97,21 @@ class Projekt:
     def findFriend(self):
         print('Znalazles')
     
+    def printFriend(self, mail):
+        print('___________________\nYOUR FRIENDS LIST\n___________________')
+        self.mail = mail
+        self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
+        RS = self.cursor.fetchall()
+        for friend in RS:
+            print('*', friend[0])
+    
     def logout(self):
-        print('Zostales pomyslnie wylogowany')
+        print('Zosta`les pomyslnie wylogowany')
         
     def deleteAccount():
         print('Konto usuniete pomyslnie')
         
-    # TODO: sprawdzanie czy znajmoœæ ju¿ istnieje
-    # TODO: DEF KLASA WYSWIETLAJACA twoich znajomych
+    # TODO: sprawdzanie czy znajmosc juz  istnieje
     # TODO: 3 proby logowania potem wypad
     # TODO: powrot do zamego poczatku po nieudanym logowaniu i po nieudanej rejestracji
     # TODO: po co jest:     def DBclose(self): /         print('Koniec') /         self.conn.close()
