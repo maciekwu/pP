@@ -50,7 +50,7 @@ create table Wiadomosci (
     FOREIGN KEY (id_z) REFERENCES Uzytkownicy (id)
     );
     
-create table Lokalizacja ( 
+create table Lokacja ( 
     id INT AUTO_INCREMENT,
     id_u INT NOT NULL,
     id_m INT NOT NULL,
@@ -86,3 +86,4 @@ drop trigger t_logowanie;
 -- 	delete from logowanie where uzytkownicy.id = logowanie.id_u 
 -- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
 -- TODO: constraint na pary unikalne w tabeli relacja
+-- TODO: constraint na pary unikalne w tabeli LOKALIZACJA

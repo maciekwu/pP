@@ -3,9 +3,11 @@ insert into Logowanie
 values
 ('mckkkk', 'aaa', (select id from Uzytkownicy where mail = 'mckkkk'));
 
-delete from Logowanie;
-delete from uzytkownicy;
-delete from relacje;
 
 
-select * from relacje where id_u = (select id from uzytkownicy where mail = 'mck') and id_z = (select id from uzytkownicy where mail = 'plp');
+insert into miejsca (nazwa)  values ('Lustra');
+insert into miejsca (nazwa)  values ('Smolna');
+insert into miejsca (nazwa)  values ('Szwejk');
+insert into miejsca (nazwa)  values ('Kulturalna');
+insert into miejsca (nazwa)  values ('Parana');
+insert into miejsca (nazwa)  values ('Mc Donald\'s');
