@@ -8,12 +8,19 @@ class Projekt:
         self.cursor = self.conn.cursor()
         self.mail = mail
         while(True):
-            initial_choice = input('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
+            initial_choice = input('___________________\n-= Home page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
                 
             if (initial_choice == 'L'):
-                loginSuccessfull = self.login()
-                while(loginSuccessfull):
+                numOfLoginAttempts = 0
+                while(numOfLoginAttempts < 3):
+                    decision = self.login()
                 # TODO: what to do after successul login
+                    if (decision):
+                        break
+                    else: numOfLoginAttempts += 1
+                    print('numOfLoginAttempts: ', numOfLoginAttempts)
+                    
+                while(decision):    
                     choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  L - List your friends  |  Q - Quit  |\nYour choice: ').upper()
                     if (choice == 'A'):
                         self.addFriend(mail)
@@ -22,14 +29,15 @@ class Projekt:
                         self.printFriend(mail)
                         
                     if (choice == 'Q'):
-                        print('___________________\nSuccessfull logout.')
-                        break                    
+                        print('Bye, bye!')
+                        break
+                    
             
             if (initial_choice == 'R'):
                 self.register()
             
             if (initial_choice == 'Q'):
-                print('___________________\nBye, bye!')
+                print('Bye, bye!')
                 break    
             
             if (initial_choice != 'L' and initial_choice != 'R' and initial_choice != 'Q' ):
