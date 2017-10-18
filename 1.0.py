@@ -14,15 +14,15 @@ class Projekt:
                 loginSuccessfull = self.login()
                 while(loginSuccessfull):
                 # TODO: what to do after successul login
-                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  L - List your friends  |  C - Check In  |  Q - Quit  |\nYour choice: ').upper()
+                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - List your friends  |  L - Location  |  Q - Quit  |\nYour choice: ').upper()
                     if (choice == 'A'):
                         self.addFriend(mail)
                     
-                    if (choice == "L"):
+                    if (choice == "F"):
                         self.printFriend(mail)
                         
-                    if (choice == "C"):
-                        self.locationCheckIn(mail)   
+                    if (choice == "L"):
+                        self.location(mail)   
                         
                     if (choice == 'Q'):
                         print('___________________\nSuccessfull logout.')
@@ -89,16 +89,18 @@ class Projekt:
     def addFriend(self, mail):
         self.mail = mail
         print('___________________\nADD A FRIEND\n___________________')
-        fMail = input('Who would you like to add: ')
+        fMail = input('Who would you like to tag as a friend: ')
+        # check if future friend exists in db
         self.cursor.execute("SELECT * FROM UZYTKOWNICY WHERE UPPER(MAIL) = UPPER('%s');" %(fMail))
         RS = self.cursor.fetchall()            
-            # check if user exists
+        # if Y   
         if(len(RS) != 0):
+            # check if he is already a friend
             self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
             RS_ = self.cursor.fetchall()
-            # if user exists, check if he is already a friend 
+            # if N: add user to friends list
             if (len(RS_) == 0):
-                # two records to be created for relation current user - new friend and new friend - current user
+                # two records to be created in RELACJE table: for relation current user - new friend and new friend - current user
                 self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', mail, fMail))
                 self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', fMail, mail))
                 self.conn.commit()            
@@ -119,19 +121,52 @@ class Projekt:
         for friend in RS:
             print('*', friend[0])
     
-    def locationCheckIn(self, mail):
+    def location(self, mail):
         print('___________________\nCHECK IN TO YOUR LOCATION\n___________________')
         self.mail = mail
-        print('Available places:\n___________________')
-        # list available places here
-        self.cursor.execute("SELECT nazwa FROM miejsca")
-        PLACES = self.cursor.fetchall()
-        for place in PLACES:
-            print('* ', place[0]) 
-        # ask where to check in
-        checkTo = input('Where would you like to check in [type name]: ')
-        self.cursor.execute("INSERT INTO lokacja (id_u, id_m) VALUES((SELECT id FROM uzytkownicy WHERE mail = '%s'), (SELECT id FROM miejsca WHERE UPPER(nazwa) = UPPER('%s')));" %(mail, checkTo))
-        print('You have been successfully checked in %s.' %(checkTo))
+        self.cursor.execute("SELECT nazwa FROM miejsca WHERE id = (SELECT id_m FROM lokacja WHERE id_u = (SELECT id FROM uzytkownicy WHERE mail = '%s'));" %(mail))
+        alreadyCheckInTo = self.cursor.fetchall()
+        # check if user is already check in to some place
+        if (len(alreadyCheckInTo) != 0):
+            # if Y: print where is user checked in
+            while(True):
+                # if Y: print where is user checked in
+                print('You are already checked in to: %s' % (alreadyCheckInTo[0]))
+                # ask for check out from current place
+                checkOutDec = input('Would you like to check out from %s? [Y / N]: ' % (alreadyCheckInTo[0])).upper()
+                # if N: go back to main menu
+                if (checkOutDec == 'N'):
+                    break
+                # if N: delete record from LOKACJA table and proceed further
+                else:
+                    self.cursor.execute("DELETE FROM lokacja WHERE id_u = (SELECT id FROM uzytkownicy WHERE mail = '%s');" %(mail))
+                    self.conn.commit()                    
+                    print('You have been successfully checked out from %s.' % (alreadyCheckInTo[0]))
+                    return False
+        else:
+            # if N: list available places to check in
+            print('Available places:\n___________________')
+            self.cursor.execute("SELECT nazwa FROM miejsca")
+            PLACES = self.cursor.fetchall()
+            for place in PLACES:
+                print('* ', place[0]) 
+            # ask where to check in
+            while (True):
+                checkTo = input('Where would you like to check in [type name]: ').upper()
+                # check if user provided correct place name
+                self.cursor.execute("SELECT nazwa FROM miejsca WHERE UPPER(nazwa) = UPPER('%s');" % (checkTo))
+                placeExist = self.cursor.fetchall()
+                # if Y: check in user to selected place
+                if(len(placeExist) != 0):
+                    self.cursor.execute("INSERT INTO lokacja (id_u, id_m) VALUES((SELECT id FROM uzytkownicy WHERE mail = '%s'), (SELECT id FROM miejsca WHERE UPPER(nazwa) = UPPER('%s')));" %(mail, checkTo))
+                    self.conn.commit()
+                    print('You have been successfully checked in to %s.' %(checkTo))
+                    break
+                # if N: ask to provide place's name again until correct
+                else:
+                    print('Please provide correct place name.')
+                    
+                
         
     def locationCheckOut(self, mail):
         print('___________________\nCHECK OUT FROM YOUR LOCATION\n___________________')
