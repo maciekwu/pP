@@ -8,21 +8,22 @@ class Projekt:
         self.cursor = self.conn.cursor()
         self.mail = mail
         while(True):
-            initial_choice = input('___________________\nHome page\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
+            initial_choice = input('___________________\n-= Home page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
                 
             if (initial_choice == 'L'):
                 self.login()
                 # TODO: what to do after successul login
-                choice = input('___________________\nMain menu\n|  A - Add a friend  |  L - List your friends  |  Q - Quit  |\nYour choice: ').upper()
-                if (choice == 'A'):
-                    self.addFriend(mail)
-                
-                if (choice == "L"):
-                    self.printFriend(mail)
+                while(True):
+                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  L - List your friends  |  Q - Quit  |\nYour choice: ').upper()
+                    if (choice == 'A'):
+                        self.addFriend(mail)
                     
-                if (choice == 'Q'):
-                    print('Bye, bye!')
-                    break                 
+                    if (choice == "L"):
+                        self.printFriend(mail)
+                        
+                    if (choice == 'Q'):
+                        print('Bye, bye!')
+                        break                 
             
             if (initial_choice == 'R'):
                 self.register()
@@ -62,32 +63,33 @@ class Projekt:
             RS = self.cursor.fetchall()
             # if Y: ask for mail again
             if(len(RS) != 0):
-                print('___________________\nUser already exists! Try another e-mail.\n___________________')
-                continue
+                print('___________________\nUser already exists! Try another time.')
+                break
             # if N: ask for remaining credentials
             else:              
                 imie_ = input('Name: ')
                 miasto_ = input('City: ')
                 passwrd_ = input('Password: ')
+                # pass credentials to db  
+                # insert record to table: UZYTKOWNICY 
+                self.cursor.execute("INSERT INTO Uzytkownicy (IMIE, MIASTO, MAIL) values ('%s', '%s', '%s');" %(imie_, miasto_, mail_))
+                self.conn.commit()
+                
+                # insert record to table: LOGOWANIE 
+                self.cursor.execute("INSERT INTO LOGOWANIE (MAIL, PASSWRD, ID_U) values ('%s', '%s', (select id from Uzytkownicy where mail = '%s'));" %(mail_, passwrd_, mail_))
+                self.conn.commit()
+                print('___________________\nGREAT! User %s added successfully.' %(mail_))
                 break
-        # pass credentials to db  
-        # insert record to table: UZYTKOWNICY 
-        self.cursor.execute("INSERT INTO Uzytkownicy (IMIE, MIASTO, MAIL) values ('%s', '%s', '%s');" %(imie_, miasto_, mail_))
-        self.conn.commit()
         
-        # insert record to table: LOGOWANIE 
-        self.cursor.execute("INSERT INTO LOGOWANIE (MAIL, PASSWRD, ID_U) values ('%s', '%s', (select id from Uzytkownicy where mail = '%s'));" %(mail_, passwrd_, mail_))
-        self.conn.commit()
-        
-        print('___________________\nGREAT! User added successfully.')
+
         
     def addFriend(self, mail):
         self.mail = mail
         print('___________________\nADD A FRIEND\n___________________')
         fMail = input('Who would you like to add: ')
         self.cursor.execute("SELECT * FROM UZYTKOWNICY WHERE UPPER(MAIL) = UPPER('%s');" %(fMail))
-        RS = self.cursor.fetchall()
-        # check if user exists
+        RS = self.cursor.fetchall()            
+            # check if user exists
         if(len(RS) != 0):
             self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
             RS_ = self.cursor.fetchall()
@@ -96,12 +98,12 @@ class Projekt:
                 self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', mail, fMail))
                 self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', fMail, mail))
                 self.conn.commit()            
-                print('User %s has been successfully added to your friends list!' % (fMail))
+                print('___________________\nUser %s has been successfully added to your friends list!' % (fMail))
             else:
-                print('You are already friends with %s.' %(fmail))
+                print('___________________\nYou are already friends with %s.' %(fMail))
         else:            
-            print('User %s does not exist!' %(fmail))
-        
+                print('___________________\nUser %s does not exist!' %(fMail))
+            
     def findFriend(self):
         print('Znalazles')
     
