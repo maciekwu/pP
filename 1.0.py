@@ -83,16 +83,24 @@ class Projekt:
         
     def addFriend(self, mail):
         self.mail = mail
-        fMail = input('What is your friend\'s mail: ')
+        print('___________________\nADD A FRIEND\n___________________')
+        fMail = input('Who would you like to add: ')
         self.cursor.execute("SELECT * FROM UZYTKOWNICY WHERE UPPER(MAIL) = UPPER('%s');" %(fMail))
         RS = self.cursor.fetchall()
+        # check if user exists
         if(len(RS) != 0):
-            self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', mail, fMail))
-            self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', fMail, mail))
-            self.conn.commit()            
-            print('User %s has been successfully added to your friends list!' % (fMail))
+            self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
+            RS_ = self.cursor.fetchall()
+            # if user exists, check if he is already a friend 
+            if (len(RS_) == 0):
+                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', mail, fMail))
+                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', fMail, mail))
+                self.conn.commit()            
+                print('User %s has been successfully added to your friends list!' % (fMail))
+            else:
+                print('You are already friends with %s.' %(fmail))
         else:            
-            print('User does not exist!')
+            print('User %s does not exist!' %(fmail))
         
     def findFriend(self):
         print('Znalazles')
@@ -106,7 +114,7 @@ class Projekt:
             print('*', friend[0])
     
     def logout(self):
-        print('Zosta`les pomyslnie wylogowany')
+        print('Zostales pomyslnie wylogowany')
         
     def deleteAccount():
         print('Konto usuniete pomyslnie')
@@ -116,5 +124,6 @@ class Projekt:
     # TODO: powrot do zamego poczatku po nieudanym logowaniu i po nieudanej rejestracji
     # TODO: po co jest:     def DBclose(self): /         print('Koniec') /         self.conn.close()
     # TODO: klasy testowe i ROZDZIELENIE NA KLASY !!!!!
+    # haslo do bazy w osobnej bibliotece
 
 sql = Projekt('mck')

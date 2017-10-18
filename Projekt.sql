@@ -36,7 +36,8 @@ create table Relacje (
     id_z INT NOT NULL,
 	PRIMARY KEY (id),
     FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_z) REFERENCES Uzytkownicy (id)
+    FOREIGN KEY (id_z) REFERENCES Uzytkownicy (id),
+    CONSTRAINT () 
     );
     
 create table Wiadomosci (
@@ -83,5 +84,5 @@ drop trigger t_logowanie;
 -- create trigger t_logowanie
 -- before delete on uzytkownicy
 -- 	delete from logowanie where uzytkownicy.id = logowanie.id_u 
--- TODO: kursory dla usuwania konta
+-- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
 -- TODO: constraint na pary unikalne w tabeli relacja
