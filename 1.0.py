@@ -7,13 +7,17 @@ class Projekt:
         #ustawienie kursora
         self.cursor = self.conn.cursor()
         while(True):
-            initial_choice = input('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
-                
+            # display Login page
+            print('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |')
+            # ask user what to do
+            initial_choice = input('Your choice: ').upper()
             if (initial_choice == 'L'):
-                loginSuccessfull = self.login()
-                while(loginSuccessfull):
-                # TODO: what to do after successul login
-                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - List your friends  |  L - Location  |  Q - Quit  |\nYour choice: ').upper()
+                isLoggedIn = self.login()
+                while(isLoggedIn):
+                    # display user's Main menu after successfull login
+                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  |  Q - Quit  |')
+                    # ask logged user what to do
+                    choice = input('Your choice: ').upper()
                     if (choice == 'A'):
                         self.addFriend(self.mail)
                     
@@ -50,11 +54,10 @@ class Projekt:
             print('___________________\nSuccessfull login!')
             return True
 
-        # if N: ask for mail and password again <- correct so that main menu is being displayed
+        # if N: go back to Login page
         else:
-            print('___________________\n!Wrong credentials. Please try again.')
+            print('___________________\nWrong credentials. Please try again.')
             return False
-
         
     def register(self):
         print('___________________\nREGISTER\n___________________')
@@ -83,7 +86,6 @@ class Projekt:
                 print('___________________\nGREAT! User %s added successfully.' %(mail_))
                 break
         
-
         
     def addFriend(self, mail):
         self.mail = mail
@@ -109,19 +111,23 @@ class Projekt:
         else:            
                 print('___________________\nUser %s does not exist!' %(friendMail))
             
-    def findFriend(self):
-        print('Znalazles')
     
     def printFriend(self, mail):
         print('___________________\nYOUR FRIENDS LIST\n___________________')
         self.mail = mail
+        # set cursos
         self.cursor.execute("select mail from uzytkownicy where id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
+        # fetch cursor with list of friends
         friendsList = self.cursor.fetchall()
         # check if any friends exist
         if (len(friendsList) != 0):
-            # if Y: print friends
-            for friend in friendsList:
-                print('* ', friend[0])
+            # if Y: print friends and their locations
+            # set cursor
+            self.cursor.execute("select u.mail, case when m.nazwa is null then 'Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is from uzytkownicy u left join lokacja l on l.id_user = u.id left join miejsca m on m.id = l.id_place where u.id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
+            # fetch cursor with list of friends and their locations
+            friendsInLocationsList = self.cursor.fetchall()
+            for a, b in friendsInLocationsList:
+                print(a, b)
             # id N: print message    
         else:
             print('You don\'t have any friends :(')
@@ -172,16 +178,7 @@ class Projekt:
                     print('Please provide correct place name.')
                     
                 
-        
-    def locationCheckOut(self, mail):
-        print('___________________\nCHECK OUT FROM YOUR LOCATION\n___________________')
-        self.mail = mail
-        
-
-        
-    
-    def logout(self):
-        print('Zostales pomyslnie wylogowany')
+          
         
     def deleteAccount():
         print('Konto usuniete pomyslnie')
@@ -190,5 +187,6 @@ class Projekt:
     # TODO: klasy testowe i ROZDZIELENIE NA KLASY !!!!!
     # haslo do bazy w osobnej bibliotece
     # TODO: uniemozliwienie podgladania lokalizacji nie-przyjaciela
+    # TODO: metoda deleteAccount() <--- usuwanie danych ze wszystkich tabel
 
 sql = Projekt()

@@ -85,3 +85,4 @@ drop trigger t_logowanie;
 -- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
 -- TODO: constraint na pary unikalne w tabeli relacja
 -- TODO: constraint na pary unikalne w tabeli LOKALIZACJA
+-- TODO: utwórz widok dla listy userow w lokalizacjach
