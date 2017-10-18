@@ -23,8 +23,6 @@ create table Uzytkownicy (
 create table Miejsca (
     id INT AUTO_INCREMENT,
     nazwa VARCHAR(25) NOT NULL unique,
-    ulica VARCHAR(35) NOT NULL,
-    nr_lokalu int,
 	miasto VARCHAR(35) NOT NULL,
 	PRIMARY KEY (id)
     );
@@ -32,51 +30,51 @@ create table Miejsca (
 create table Relacje (
     id INT AUTO_INCREMENT,
     typ_relacji VARCHAR(25) NOT NULL, 
-    id_u INT NOT NULL,
-    id_z INT NOT NULL,
+    id_user INT NOT NULL,
+    id_friend INT NOT NULL,
 	PRIMARY KEY (id),
-    FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_z) REFERENCES Uzytkownicy (id),
+    FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
+    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id),
     CONSTRAINT () 
     );
     
 create table Wiadomosci (
     id INT AUTO_INCREMENT,
     tresc VARCHAR(300) NOT NULL,
-    id_u INT NOT NULL,
-    id_z INT NOT NULL,
+    id_user INT NOT NULL,
+    id_friend INT NOT NULL,
 	PRIMARY KEY (id),
-	FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_z) REFERENCES Uzytkownicy (id)
+	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
+    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id)
     );
     
 create table Lokacja ( 
     id INT AUTO_INCREMENT,
-    id_u INT NOT NULL,
-    id_m INT NOT NULL,
+    id_user INT NOT NULL,
+    id_place INT NOT NULL,
 	PRIMARY KEY (id),
-	FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_m) REFERENCES Miejsca (id)
+	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
+    FOREIGN KEY (id_place) REFERENCES Miejsca (id)
     );
     
 create table Ocena ( 
     id INT AUTO_INCREMENT,
     ocena INT NOT NULL,
     komentarz VARCHAR(300),
-    id_u INT NOT NULL,
-    id_m INT NOT NULL,
+    id_user INT NOT NULL,
+    id_place INT NOT NULL,
 	PRIMARY KEY (id),
-	FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_m) REFERENCES Miejsca (id)
+	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
+    FOREIGN KEY (id_place) REFERENCES Miejsca (id)
     );
     
 create table Logowanie ( 
     id INT AUTO_INCREMENT,
     mail VARCHAR(300) NOT NULL unique,
     passwrd VARCHAR(300) NOT NULL,
-    id_u INT NOT NULL unique,
+    id_user INT NOT NULL unique,
 	PRIMARY KEY (id),
-	FOREIGN KEY (id_u) REFERENCES Uzytkownicy (id)
+	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id)
     );
     
 drop trigger t_logowanie;

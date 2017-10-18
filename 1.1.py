@@ -2,42 +2,36 @@ import pymysql
 
 class Projekt:
 
-    def __init__(self, mail):
+    def __init__(self):
         self.conn = pymysql.connect('localhost', 'python_user', 'niebieski123', 'projektt', charset='utf8')
         #ustawienie kursora
         self.cursor = self.conn.cursor()
-        self.mail = mail
         while(True):
-            initial_choice = input('___________________\n-= Home page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
+            initial_choice = input('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |\nYour choice: ').upper()
                 
             if (initial_choice == 'L'):
-                numOfLoginAttempts = 0
-                while(numOfLoginAttempts < 3):
-                    decision = self.login()
+                loginSuccessfull = self.login()
+                while(loginSuccessfull):
                 # TODO: what to do after successul login
-                    if (decision):
-                        break
-                    else: numOfLoginAttempts += 1
-                    print('numOfLoginAttempts: ', numOfLoginAttempts)
-                    
-                while(decision):    
-                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  L - List your friends  |  Q - Quit  |\nYour choice: ').upper()
+                    choice = input('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - List your friends  |  L - Location  |  Q - Quit  |\nYour choice: ').upper()
                     if (choice == 'A'):
-                        self.addFriend(mail)
+                        self.addFriend(self.mail)
                     
+                    if (choice == "F"):
+                        self.printFriend(self.mail)
+                        
                     if (choice == "L"):
-                        self.printFriend(mail)
+                        self.location(self.mail)   
                         
                     if (choice == 'Q'):
-                        print('Bye, bye!')
-                        break
-                    
+                        print('___________________\nSuccessfull logout.')
+                        break                    
             
             if (initial_choice == 'R'):
                 self.register()
             
             if (initial_choice == 'Q'):
-                print('Bye, bye!')
+                print('___________________\nBye, bye!')
                 break    
             
             if (initial_choice != 'L' and initial_choice != 'R' and initial_choice != 'Q' ):
@@ -45,7 +39,7 @@ class Projekt:
                 
     def login(self):
         print('___________________\nLOG IN\n___________________')        
-        mail = input('Mail: ')
+        mail = input('Your Mail: ')
         self.mail = mail
         passwrd_ = input('Password: ') 
         self.cursor.execute("SELECT * FROM LOGOWANIE WHERE MAIL = '%s' AND PASSWRD = '%s';" % (mail, passwrd_))
@@ -58,7 +52,7 @@ class Projekt:
 
         # if N: ask for mail and password again <- correct so that main menu is being displayed
         else:
-            print('___________________\n!!! Wrong credentials. Please try again.')
+            print('___________________\n!Wrong credentials. Please try again.')
             return False
 
         
@@ -71,7 +65,7 @@ class Projekt:
             RS = self.cursor.fetchall()
             # if Y: back to home page
             if(len(RS) != 0):
-                print('___________________\nUser already exists! Try another time.')
+                print('___________________\nUser already exists! Try another one.')
                 break
             # if N: ask for remaining credentials
             else:              
@@ -94,23 +88,26 @@ class Projekt:
     def addFriend(self, mail):
         self.mail = mail
         print('___________________\nADD A FRIEND\n___________________')
-        fMail = input('Who would you like to add: ')
-        self.cursor.execute("SELECT * FROM UZYTKOWNICY WHERE UPPER(MAIL) = UPPER('%s');" %(fMail))
+        friendMail = input('Who would you like to tag as a friend: ')
+        # check if future friend exists in db
+        self.cursor.execute("SELECT * FROM UZYTKOWNICY WHERE UPPER(MAIL) = UPPER('%s');" %(friendMail))
         RS = self.cursor.fetchall()            
-            # check if user exists
+        # if Y   
         if(len(RS) != 0):
-            self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
+            # check if he is already a friend
+            self.cursor.execute("select * from relacje where id_u = (select id from uzytkownicy where mail = '%s') and id_z = (select id from uzytkownicy where mail = '%s');" %(self.mail, friendMail))
             RS_ = self.cursor.fetchall()
-            # if user exists, check if he is already a friend 
+            # if N: add user to friends list
             if (len(RS_) == 0):
-                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', mail, fMail))
-                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', fMail, mail))
+                # two records to be created in RELACJE table: for relation current user - new friend and new friend - current user
+                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', self.mail, friendMail))
+                self.cursor.execute("INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('%s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %('F', friendMail, self.mail))
                 self.conn.commit()            
-                print('___________________\nUser %s has been successfully added to your friends list!' % (fMail))
+                print('___________________\nUser %s has been successfully added to your friends list!' % (friendMail))
             else:
-                print('___________________\nYou are already friends with %s.' %(fMail))
+                print('___________________\nYou are already friends with user %s.' %(friendMail))
         else:            
-                print('___________________\nUser %s does not exist!' %(fMail))
+                print('___________________\nUser %s does not exist!' %(friendMail))
             
     def findFriend(self):
         print('Znalazles')
@@ -118,10 +115,64 @@ class Projekt:
     def printFriend(self, mail):
         print('___________________\nYOUR FRIENDS LIST\n___________________')
         self.mail = mail
-        self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(mail))
+        self.cursor.execute("select mail from uzytkownicy where id in (select id_z from relacje where id_u = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
         RS = self.cursor.fetchall()
         for friend in RS:
             print('*', friend[0])
+    
+    def location(self, mail):
+        print('___________________\nCHECK IN TO YOUR LOCATION\n___________________')
+        self.mail = mail
+        self.cursor.execute("SELECT nazwa FROM miejsca WHERE id = (SELECT id_m FROM lokacja WHERE id_u = (SELECT id FROM uzytkownicy WHERE mail = '%s'));" %(self.mail))
+        alreadyCheckInTo = self.cursor.fetchall()
+        # check if user is already check in to some place
+        if (len(alreadyCheckInTo) != 0):
+            # if Y: print where is user checked in
+            while(True):
+                # if Y: print where is user checked in
+                print('You are already checked in to: %s' % (alreadyCheckInTo[0]))
+                # ask for check out from current place
+                checkOutDec = input('Would you like to check out from %s? [Y / N]: ' % (alreadyCheckInTo[0])).upper()
+                # if N: go back to main menu
+                if (checkOutDec == 'N'):
+                    break
+                # if N: delete record from LOKACJA table and proceed further
+                else:
+                    self.cursor.execute("DELETE FROM lokacja WHERE id_u = (SELECT id FROM uzytkownicy WHERE mail = '%s');" %(self.mail))
+                    self.conn.commit()                    
+                    print('You have been successfully checked out from %s.' % (alreadyCheckInTo[0]))
+                    return False
+        else:
+            # if N: list available places to check in
+            print('Available places:\n___________________')
+            self.cursor.execute("SELECT nazwa FROM miejsca")
+            PLACES = self.cursor.fetchall()
+            for place in PLACES:
+                print('* ', place[0]) 
+            # ask where to check in
+            while (True):
+                checkTo = input('Where would you like to check in [type name]: ').upper()
+                # check if user provided correct place name
+                self.cursor.execute("SELECT nazwa FROM miejsca WHERE UPPER(nazwa) = UPPER('%s');" % (checkTo))
+                placeExist = self.cursor.fetchall()
+                # if Y: check in user to selected place
+                if(len(placeExist) != 0):
+                    self.cursor.execute("INSERT INTO lokacja (id_u, id_m) VALUES((SELECT id FROM uzytkownicy WHERE mail = '%s'), (SELECT id FROM miejsca WHERE UPPER(nazwa) = UPPER('%s')));" %(mail, checkTo))
+                    self.conn.commit()
+                    print('You have been successfully checked in to %s.' %(checkTo))
+                    break
+                # if N: ask to provide place's name again until correct
+                else:
+                    print('Please provide correct place name.')
+                    
+                
+        
+    def locationCheckOut(self, mail):
+        print('___________________\nCHECK OUT FROM YOUR LOCATION\n___________________')
+        self.mail = mail
+        
+
+        
     
     def logout(self):
         print('Zostales pomyslnie wylogowany')
@@ -129,11 +180,9 @@ class Projekt:
     def deleteAccount():
         print('Konto usuniete pomyslnie')
         
-    # TODO: sprawdzanie czy znajmosc juz  istnieje
-    # TODO: 3 proby logowania potem wypad
-    # TODO: powrot do zamego poczatku po nieudanym logowaniu i po nieudanej rejestracji
     # TODO: po co jest:     def DBclose(self): /         print('Koniec') /         self.conn.close()
     # TODO: klasy testowe i ROZDZIELENIE NA KLASY !!!!!
     # haslo do bazy w osobnej bibliotece
+    # TODO: uniemozliwienie podgladania lokalizacji nie-przyjaciela
 
-sql = Projekt('mck')
+sql = Projekt()
