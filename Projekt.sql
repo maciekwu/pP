@@ -16,7 +16,7 @@ create table Uzytkownicy (
     #nazwisko VARCHAR(35) NOT NULL,
 	miasto VARCHAR(35) NOT NULL,
     #plec VARCHAR(35) NOT NULL,
-    mail VARCHAR(100) NOT NULL unique,
+    mail VARCHAR(100) NOT NULL UNIQUE ,
 	PRIMARY KEY (id)
     );
     
@@ -34,15 +34,15 @@ create table Relacje (
     id_friend INT NOT NULL,
 	PRIMARY KEY (id),
     FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id),
-    CONSTRAINT () 
-    );
+    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id)
+    ;
     
 create table Wiadomosci (
     id INT AUTO_INCREMENT,
     tresc VARCHAR(300) NOT NULL,
     id_user INT NOT NULL,
     id_friend INT NOT NULL,
+    is_read CHAR NOT NULL DEFAULT '0',
 	PRIMARY KEY (id),
 	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
     FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id)
@@ -79,10 +79,10 @@ create table Logowanie (
     
 drop trigger t_logowanie;
 
--- create trigger t_logowanie
--- before delete on uzytkownicy
--- 	delete from logowanie where uzytkownicy.id = logowanie.id_u 
+
 -- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
 -- TODO: constraint na pary unikalne w tabeli relacja
 -- TODO: constraint na pary unikalne w tabeli LOKALIZACJA
--- TODO: utwórz widok dla listy userow w lokalizacjach
+-- TODO: utwórz widok dla listy userow w lokalizacjach - > kto, gdzie jest, jaką dał ocenę
+-- TODO: utwórz widok dla wiadomości - treść, od kogo, do kogo, czy przeczytana
+-- TODO: napisz constraint na tabeli wiadomości - > przy tworzeniu nowego rekordu id_user != id_friend

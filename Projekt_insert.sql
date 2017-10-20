@@ -16,3 +16,6 @@ insert into miejsca (nazwa)  values ('Mc Donald\'s');
 
 INSERT INTO Relacje (TYP_RELACJI, ID_U, ID_Z) values ('F', (select id from Uzytkownicy where mail = 'mck'), (select id from Uzytkownicy where mail = 'krk'));
 
+insert into wiadomosci (tresc, id_user, id_friend) values ('%100s', (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));
+
+

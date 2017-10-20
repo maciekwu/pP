@@ -15,21 +15,31 @@ class Projekt:
                 isLoggedIn = self.login()
                 while(isLoggedIn):
                     # display user's Main menu after successfull login
-                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  |  Q - Quit  |')
+                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  \n|  M - send a massage  |  R - Read messages  |  Q - Log out %s |' %(self.mail))
                     # ask logged user what to do
                     choice = input('Your choice: ').upper()
                     if (choice == 'A'):
                         self.addFriend(self.mail)
                     
                     if (choice == "F"):
-                        self.printFriend(self.mail)
+                        self.friendLocation(self.mail)
+                        continue
                         
                     if (choice == "L"):
-                        self.location(self.mail)   
+                        self.setYourLocation(self.mail) 
+                        
+                    if (choice == 'M'):
+                        self.sendMessage(self.mail)
+                        
+                    if (choice == 'R'):
+                        self.readMessage(self.mail)
                         
                     if (choice == 'Q'):
                         print('___________________\nSuccessfull logout.')
-                        break                    
+                        break 
+                    
+                    else:
+                        print('Pardonn?')                        
             
             if (initial_choice == 'R'):
                 self.register()
@@ -112,27 +122,27 @@ class Projekt:
                 print('___________________\nUser %s does not exist!' %(friendMail))
             
     
-    def printFriend(self, mail):
-        print('___________________\nYOUR FRIENDS LIST\n___________________')
+    def friendLocation(self, mail):
+        print('___________________\nYOUR FRIENDS\' LOCATION\n___________________')
         self.mail = mail
-        # set cursos
+        # set cursor
         self.cursor.execute("select mail from uzytkownicy where id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
         # fetch cursor with list of friends
         friendsList = self.cursor.fetchall()
         # check if any friends exist
-        if (len(friendsList) != 0):
-            # if Y: print friends and their locations
+        # if Y: print friends and their locations
+        if (len(friendsList) != 0):            
             # set cursor
-            self.cursor.execute("select u.mail, case when m.nazwa is null then 'Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is from uzytkownicy u left join lokacja l on l.id_user = u.id left join miejsca m on m.id = l.id_place where u.id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
+            self.cursor.execute("select u.mail, case when m.nazwa is null then 'is Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is from uzytkownicy u left join lokacja l on l.id_user = u.id left join miejsca m on m.id = l.id_place where u.id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
             # fetch cursor with list of friends and their locations
             friendsInLocationsList = self.cursor.fetchall()
-            for a, b in friendsInLocationsList:
-                print(a, b)
-            # id N: print message    
+            for friend, whereIs in friendsInLocationsList:
+                print(friend, whereIs)
+        # if N: print message    
         else:
             print('You don\'t have any friends :(')
     
-    def location(self, mail):
+    def setYourLocation(self, mail):
         print('___________________\nCHECK IN TO YOUR LOCATION\n___________________')
         self.mail = mail
         self.cursor.execute("SELECT nazwa FROM miejsca WHERE id = (SELECT id_place FROM lokacja WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = '%s'));" %(self.mail))
@@ -153,7 +163,7 @@ class Projekt:
                     self.cursor.execute("DELETE FROM lokacja WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = '%s');" %(self.mail))
                     self.conn.commit()                    
                     print('You have been successfully checked out from %s.' % (alreadyCheckInTo[0]))
-                    return False
+                    break
         else:
             # if N: list available places to check in
             print('Available places:\n___________________')
@@ -163,7 +173,7 @@ class Projekt:
                 print('* ', place[0]) 
             # ask where to check in
             while (True):
-                checkTo = input('Where would you like to check in [type name]: ').upper()
+                checkTo = input('Where would you like to check in [type place\'s name]: ').upper()
                 # check if user provided correct place name
                 self.cursor.execute("SELECT nazwa FROM miejsca WHERE UPPER(nazwa) = UPPER('%s');" % (checkTo))
                 placeExist = self.cursor.fetchall()
@@ -178,7 +188,55 @@ class Projekt:
                     print('Please provide correct place name.')
                     
                 
-          
+    def sendMessage(self, mail):
+        self.mail = mail
+        print('___________________\nSEND MESSAGE\n___________________')
+        while(True):
+            # ask for mail of a friend to whom you would like to send a message
+            messRecipientMail = input('Send message to: ')
+            self.cursor.execute("select id_user from relacje where id_friend = (select id from uzytkownicy where mail = '%s');" %(messRecipientMail))
+            # fetch cursor
+            isFriend = self.cursor.fetchall()
+            # check if given mail belongs to any of your friends AND given mail is not your mail
+            # if Y: ask for message content
+            if (len(isFriend) != 0 ) and (messRecipientMail != self.mail):               
+                messContent = input('Message (max 100 chars - TEST): ')                
+                # add message, author and recipient to db
+                self.cursor.execute("insert into wiadomosci (tresc, id_user, id_friend) values (SUBSTR('%s', 1, 100), (select id from Uzytkownicy where mail = '%s'), (select id from Uzytkownicy where mail = '%s'));" %(messContent, self.mail, messRecipientMail))
+                self.conn.commit()
+                print('Message has been sent.')
+                break
+            # if N:    
+            else:
+                print('You are not a friend of %s' %(messRecipientMail)) 
+                break
+            
+    def readMessage(self, mail):
+        self.mail = mail
+        print('___________________\nREAD MESSAGE\n___________________')
+        self.cursor.execute("select  (select mail from uzytkownicy where id = w.id_user) as 'fromWho', w.tresc from wiadomosci w join uzytkownicy u on u.id = w.id_friend where w.is_read = '0' and u.mail = '%s';" %(self.mail))
+        # fetch cursor
+        newMessages = self.cursor.fetchall()
+        # check if there are any unreaded messages - IMPORTANT: only unreaded messages are being shown here
+        # if Y: print them
+        if (len(newMessages) != 0 ):
+            # count number of new messages
+            self.cursor.execute("select count(*) from wiadomosci w join uzytkownicy u on u.id = w.id_friend where w.is_read = '0' and u.mail = '%s';" %(self.mail))
+            numOfNewMessages = self.cursor.fetchall()
+            # display number of new messages
+            print('You have %s new message(s):\n___________________.' %(numOfNewMessages[0]))
+            for fromWho, messContent in newMessages:
+                print('* New message from %s: %s' %(fromWho, messContent))
+                # mark message as already readed
+                self.cursor.execute("update wiadomosci set is_read = '1' where id_friend = (select id from uzytkownicy where mail = '%s');" %(self.mail))
+                self.conn.commit()                                
+        # if N:     
+        else:
+            print('You have no new messages') 
+                        
+            
+            
+            
         
     def deleteAccount():
         print('Konto usuniete pomyslnie')
@@ -186,7 +244,8 @@ class Projekt:
     # TODO: po co jest:     def DBclose(self): /         print('Koniec') /         self.conn.close()
     # TODO: klasy testowe i ROZDZIELENIE NA KLASY !!!!!
     # haslo do bazy w osobnej bibliotece
-    # TODO: uniemozliwienie podgladania lokalizacji nie-przyjaciela
     # TODO: metoda deleteAccount() <--- usuwanie danych ze wszystkich tabel
+    # TODO: metoda deleteFriend()
+    # TODO: sortowanie wyswietlania listy znajomych po lokacji, w ktorej jestes Ty
 
 sql = Projekt()
