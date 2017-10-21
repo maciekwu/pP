@@ -8,14 +8,14 @@ class Projekt:
         self.cursor = self.conn.cursor()
         while(True):
             # display Login page
-            print('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |')
+            print('___________________\n-= Login page =-\n|  L - Log in |  R - Register |  Q - Quit  |\n___________________')
             # ask user what to do
             initial_choice = input('Your choice: ').upper()
             if (initial_choice == 'L'):
                 isLoggedIn = self.login()
                 while(isLoggedIn):
                     # display user's Main menu after successfull login
-                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  |  \n|  S - send a massage  |  M - Messages  |  R - Rate your visit  |  Q - Log out %s |' %(self.mail))
+                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  |  S - Send a massage  |  N - New Messages  |  R - Rate your visit  |  Q - Log out %s |\n___________________' %(self.mail))
                     # ask logged user what to do
                     choice = input('Your choice: ').upper()
                     if (choice == 'A'):
@@ -34,7 +34,7 @@ class Projekt:
                         self.sendMessage(self.mail)
                         continue
                         
-                    if (choice == 'M'):
+                    if (choice == 'N'):
                         self.readMessage(self.mail)
                         continue
                     
@@ -145,7 +145,7 @@ class Projekt:
             # fetch cursor with list of friends,their locations and their rating of visit
             friendsInLocationsList = self.cursor.fetchall()
             for who, isFriendOf, whereIs, rating in friendsInLocationsList:
-                print('User: %15s  |  Location: %15s  |  Rating: %10s  |'  %(who, whereIs, str(rating)))
+                print('User: %15s  |  Location: %15s  |  Rating: %15s  |'  %(who, whereIs, str(rating)))
         # if N: print message    
         else:
             print('You don\'t have any friends :(')
@@ -258,6 +258,10 @@ class Projekt:
                 if (rating in range(6)):					
                     # insert rating to db
                     for who, whereIs in alreadyCheckInTo:
+                        # delete previous rating
+                        self.cursor.execute("Delete from Ocena where id_user = (select id from uzytkownicy where mail = '%s') and id_place = (select id from miejsca where nazwa = '%s');" %(who, whereIs))
+                        self.conn.commit()
+                        # add new rating
                         self.cursor.execute("INSERT into Ocena (ocena, id_user, id_place) values (%i, (select id from uzytkownicy where mail = '%s'), (select id from miejsca where nazwa = '%s'));" %(rating, who, whereIs))
                         self.conn.commit() 
                         print('You have successfully rated %s!' % (alreadyCheckInTo[0][1]))
