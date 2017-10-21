@@ -246,6 +246,9 @@ class Projekt:
     # haslo do bazy w osobnej bibliotece
     # TODO: metoda deleteAccount() <--- usuwanie danych ze wszystkich tabel
     # TODO: metoda deleteFriend()
+    # TODO: podmien sleecty na widoki
     # TODO: sortowanie wyswietlania listy znajomych po lokacji, w ktorej jestes Ty
+    # TODO: wyswietlanie tylko lokali w Twoim miescie
+    # TODO: wychodzenie z petli po nieudanym wpisaniu nazwy lokalu, w ktorym chcesz sie zalogowac
 
 sql = Projekt()

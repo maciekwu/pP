@@ -1,21 +1,22 @@
 #create database projektt;
 use projektt;
 SET FOREIGN_KEY_CHECKS = 0;
-drop table Uzytkownicy;
-drop table Miejsca;
-drop table Relacje;
-drop table Wiadomosci;
-drop table Ocena;
-drop table Lokalizacja;
-drop table Logowanie;
-drop trigger t_logowanie;
+drop table IF EXISTS Uzytkownicy;
+drop table IF EXISTS Miejsca;
+drop table IF EXISTS Relacje;
+drop table IF EXISTS Wiadomosci;
+drop table IF EXISTS Ocena;
+drop table IF EXISTS Lokacja;
+drop table IF EXISTS Logowanie;
+
+drop VIEW IF EXISTS userInLocationRating;
+drop VIEW IF EXISTS messageAuthorRead;
+drop trigger IF EXISTS t_deleteUser;
 
 create table Uzytkownicy (
     id INT AUTO_INCREMENT,
     imie VARCHAR(25) NOT NULL,
-    #nazwisko VARCHAR(35) NOT NULL,
 	miasto VARCHAR(35) NOT NULL,
-    #plec VARCHAR(35) NOT NULL,
     mail VARCHAR(100) NOT NULL UNIQUE ,
 	PRIMARY KEY (id)
     );
@@ -23,7 +24,7 @@ create table Uzytkownicy (
 create table Miejsca (
     id INT AUTO_INCREMENT,
     nazwa VARCHAR(25) NOT NULL unique,
-	miasto VARCHAR(35) NOT NULL,
+	miasto VARCHAR(35) NOT NULL DEFAULT 'Warszawa',
 	PRIMARY KEY (id)
     );
     
@@ -34,8 +35,9 @@ create table Relacje (
     id_friend INT NOT NULL,
 	PRIMARY KEY (id),
     FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id)
-    ;
+    FOREIGN KEY (id_friend) REFERENCES Uzytkownicy (id),
+	CONSTRAINT UQ_relation UNIQUE NONCLUSTERED (id_user, id_friend)
+    );
     
 create table Wiadomosci (
     id INT AUTO_INCREMENT,
@@ -54,7 +56,8 @@ create table Lokacja (
     id_place INT NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_place) REFERENCES Miejsca (id)
+    FOREIGN KEY (id_place) REFERENCES Miejsca (id),
+    CONSTRAINT UQ_location UNIQUE NONCLUSTERED (id_user, id_place)
     );
     
 create table Ocena ( 
@@ -65,7 +68,8 @@ create table Ocena (
     id_place INT NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_place) REFERENCES Miejsca (id)
+    FOREIGN KEY (id_place) REFERENCES Miejsca (id),
+	CONSTRAINT UQ_rating UNIQUE NONCLUSTERED (id_user, id_place)
     );
     
 create table Logowanie ( 
@@ -76,13 +80,45 @@ create table Logowanie (
 	PRIMARY KEY (id),
 	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id)
     );
-    
-drop trigger t_logowanie;
+
+
+CREATE VIEW userInLocationRating AS (
+	select 
+	u.mail as mail, 
+	case when m.nazwa is null then 'is Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is,
+	o.ocena as rating 
+	from uzytkownicy u 
+	left join lokacja l on l.id_user = u.id 
+	left join miejsca m on m.id = l.id_place 
+	left join ocena o on o.id_user = l.id_user and o.id_place = l.id_place
+);
+
+CREATE VIEW messageAuthorRead AS (
+	select 
+    u.mail as recipient, 
+    u1.mail as author,
+	w.tresc as content,
+	w.is_read as is_read
+	from wiadomosci w 
+	join uzytkownicy u on u.id = w.id_friend
+    join uzytkownicy u1 on u1.id = w.id_user
+
+);
+
+/*
+CREATE TRIGGER t_deleteUser
+after delete ON logowanie-- zdarzenie określające kiedy trigger zostanie wyzwolony
+ -- tabela na której triger zostanie założony
+FOR EACH ROW 
+	BEGIN
+     DELETE FROM relacje WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = 'mck');
+	-- skrypt wykonywany przez triger
+	END;
+
+*/
+
 
 
 -- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
--- TODO: constraint na pary unikalne w tabeli relacja
--- TODO: constraint na pary unikalne w tabeli LOKALIZACJA
--- TODO: utwórz widok dla listy userow w lokalizacjach - > kto, gdzie jest, jaką dał ocenę
--- TODO: utwórz widok dla wiadomości - treść, od kogo, do kogo, czy przeczytana
+-- TODO: trigger dla usuwania znajomego (relacja, wiadomosci)
 -- TODO: napisz constraint na tabeli wiadomości - > przy tworzeniu nowego rekordu id_user != id_friend
