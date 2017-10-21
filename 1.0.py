@@ -15,24 +15,32 @@ class Projekt:
                 isLoggedIn = self.login()
                 while(isLoggedIn):
                     # display user's Main menu after successfull login
-                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  \n|  M - send a massage  |  R - Read messages  |  Q - Log out %s |' %(self.mail))
+                    print('___________________\n-= Main menu =-\n|  A - Add a friend  |  F - Find your friend(s)  |  L - Location  |  \n|  S - send a massage  |  M - Messages  |  R - Rate your visit  |  Q - Log out %s |' %(self.mail))
                     # ask logged user what to do
                     choice = input('Your choice: ').upper()
                     if (choice == 'A'):
                         self.addFriend(self.mail)
+                        continue
                     
                     if (choice == "F"):
-                        self.friendLocation(self.mail)
+                        self.checkFriendLocationAndRating(self.mail)
                         continue
                         
                     if (choice == "L"):
                         self.setYourLocation(self.mail) 
+                        continue
+                        
+                    if (choice == 'S'):
+                        self.sendMessage(self.mail)
+                        continue
                         
                     if (choice == 'M'):
-                        self.sendMessage(self.mail)
-                        
-                    if (choice == 'R'):
                         self.readMessage(self.mail)
+                        continue
+                    
+                    if (choice == 'R'):
+                        self.rateYourVisit(self.mail)
+                        continue                    
                         
                     if (choice == 'Q'):
                         print('___________________\nSuccessfull logout.')
@@ -122,7 +130,7 @@ class Projekt:
                 print('___________________\nUser %s does not exist!' %(friendMail))
             
     
-    def friendLocation(self, mail):
+    def checkFriendLocationAndRating(self, mail):
         print('___________________\nYOUR FRIENDS\' LOCATION\n___________________')
         self.mail = mail
         # set cursor
@@ -133,11 +141,11 @@ class Projekt:
         # if Y: print friends and their locations
         if (len(friendsList) != 0):            
             # set cursor
-            self.cursor.execute("select u.mail, case when m.nazwa is null then 'is Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is from uzytkownicy u left join lokacja l on l.id_user = u.id left join miejsca m on m.id = l.id_place where u.id in (select id_friend from relacje where id_user = (select id from uzytkownicy where mail = '%s'));" %(self.mail))
-            # fetch cursor with list of friends and their locations
+            self.cursor.execute("select who, isFriendOf, where_is, rating from userinlocationrating where isFriendOf = '%s';" %(self.mail))
+            # fetch cursor with list of friends,their locations and their rating of visit
             friendsInLocationsList = self.cursor.fetchall()
-            for friend, whereIs in friendsInLocationsList:
-                print(friend, whereIs)
+            for who, isFriendOf, whereIs, rating in friendsInLocationsList:
+                print('User: %15s  |  Location: %15s  |  Rating: %10s  |'  %(who, whereIs, str(rating)))
         # if N: print message    
         else:
             print('You don\'t have any friends :(')
@@ -152,7 +160,7 @@ class Projekt:
             # if Y: print where is user checked in
             while(True):
                 # if Y: print where is user checked in
-                print('You are already checked in to: %s' % (alreadyCheckInTo[0]))
+                print('___________________\nYou are already checked in to: %s' % (alreadyCheckInTo[0]))
                 # ask for check out from current place
                 checkOutDec = input('Would you like to check out from %s? [Y / N]: ' % (alreadyCheckInTo[0])).upper()
                 # if N: go back to main menu
@@ -161,21 +169,23 @@ class Projekt:
                 # if N: delete record from LOKACJA table and proceed further
                 else:
                     self.cursor.execute("DELETE FROM lokacja WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = '%s');" %(self.mail))
-                    self.conn.commit()                    
-                    print('You have been successfully checked out from %s.' % (alreadyCheckInTo[0]))
+                    self.conn.commit()  
+                    self.cursor.execute("DELETE FROM ocena WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = '%s');" %(self.mail))
+                    self.conn.commit() 
+                    print('___________________\nYou have been successfully checked out from %s.' % (alreadyCheckInTo[0]))
                     break
         else:
             # if N: list available places to check in
             print('Available places:\n___________________')
-            self.cursor.execute("SELECT nazwa FROM miejsca")
+            self.cursor.execute("SELECT nazwa FROM miejsca where miasto = (select miasto from uzytkownicy where mail = '%s');" % (self.mail))
             PLACES = self.cursor.fetchall()
             for place in PLACES:
                 print('* ', place[0]) 
             # ask where to check in
             while (True):
-                checkTo = input('Where would you like to check in [type place\'s name]: ').upper()
+                checkTo = input('___________________\nWhere would you like to check in [type place\'s name]: ').upper()
                 # check if user provided correct place name
-                self.cursor.execute("SELECT nazwa FROM miejsca WHERE UPPER(nazwa) = UPPER('%s');" % (checkTo))
+                self.cursor.execute("SELECT nazwa FROM miejsca WHERE UPPER(nazwa) = UPPER('%s') and miasto = (select miasto from uzytkownicy where mail = '%s');" % (checkTo, self.mail))
                 placeExist = self.cursor.fetchall()
                 # if Y: check in user to selected place
                 if(len(placeExist) != 0):
@@ -185,7 +195,7 @@ class Projekt:
                     break
                 # if N: ask to provide place's name again until correct
                 else:
-                    print('Please provide correct place name.')
+                    print('Incorrect place\' name. Please provide correct name.')
                     
                 
     def sendMessage(self, mail):
@@ -214,41 +224,62 @@ class Projekt:
     def readMessage(self, mail):
         self.mail = mail
         print('___________________\nREAD MESSAGE\n___________________')
-        self.cursor.execute("select  (select mail from uzytkownicy where id = w.id_user) as 'fromWho', w.tresc from wiadomosci w join uzytkownicy u on u.id = w.id_friend where w.is_read = '0' and u.mail = '%s';" %(self.mail))
+        self.cursor.execute("select author, content from messageauthorread where is_read = '0' and recipient = '%s';" %(self.mail))
         # fetch cursor
         newMessages = self.cursor.fetchall()
         # check if there are any unreaded messages - IMPORTANT: only unreaded messages are being shown here
         # if Y: print them
         if (len(newMessages) != 0 ):
             # count number of new messages
-            self.cursor.execute("select count(*) from wiadomosci w join uzytkownicy u on u.id = w.id_friend where w.is_read = '0' and u.mail = '%s';" %(self.mail))
+            self.cursor.execute("select count(*) from messageauthorread where is_read = '0' and recipient = '%s';" %(self.mail))
             numOfNewMessages = self.cursor.fetchall()
             # display number of new messages
             print('You have %s new message(s):\n___________________.' %(numOfNewMessages[0]))
-            for fromWho, messContent in newMessages:
-                print('* New message from %s: %s' %(fromWho, messContent))
+            for author, content in newMessages:
+                print('* New message from %s: %s' %(author, content))
                 # mark message as already readed
                 self.cursor.execute("update wiadomosci set is_read = '1' where id_friend = (select id from uzytkownicy where mail = '%s');" %(self.mail))
                 self.conn.commit()                                
         # if N:     
         else:
             print('You have no new messages') 
-                        
-            
-            
-            
+                                    
+    def rateYourVisit(self, mail):
+        print('___________________\nRATE YOUR VISIT\n___________________')
+        self.mail = mail
+        self.cursor.execute("SELECT who, where_is from userinlocationrating where who = '%s' and where_is != 'is Unchecked';" %(self.mail))
+        alreadyCheckInTo = self.cursor.fetchall()
+        # check if user is already check in to some place
+        if (len(alreadyCheckInTo) != 0):
+            while(True):
+                # if Y: ask for rating
+                rating = int(input('Rate your visit in %s [1 - 5]: ' %(alreadyCheckInTo[0][1])))
+                # check if rating in [1 - 5]
+                if (rating in range(6)):					
+                    # insert rating to db
+                    for who, whereIs in alreadyCheckInTo:
+                        self.cursor.execute("INSERT into Ocena (ocena, id_user, id_place) values (%i, (select id from uzytkownicy where mail = '%s'), (select id from miejsca where nazwa = '%s'));" %(rating, who, whereIs))
+                        self.conn.commit() 
+                        print('You have successfully rated %s!' % (alreadyCheckInTo[0][1]))
+                        break
+                    break
+                # if N: ask for rating again
+                else:
+                    print('Please provide rating from 1 to 5.')
+                    continue
+        else:
+            print('Set your location first!')           
         
     def deleteAccount():
         print('Konto usuniete pomyslnie')
         
     # TODO: po co jest:     def DBclose(self): /         print('Koniec') /         self.conn.close()
     # TODO: klasy testowe i ROZDZIELENIE NA KLASY !!!!!
-    # haslo do bazy w osobnej bibliotece
+    # TODO: haslo do bazy w osobnej bibliotece
     # TODO: metoda deleteAccount() <--- usuwanie danych ze wszystkich tabel
     # TODO: metoda deleteFriend()
-    # TODO: podmien sleecty na widoki
+    # TODO: podmien selecty z tabel na selecty z widokow
     # TODO: sortowanie wyswietlania listy znajomych po lokacji, w ktorej jestes Ty
-    # TODO: wyswietlanie tylko lokali w Twoim miescie
-    # TODO: wychodzenie z petli po nieudanym wpisaniu nazwy lokalu, w ktorym chcesz sie zalogowac
+
 
 sql = Projekt()

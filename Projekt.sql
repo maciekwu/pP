@@ -68,8 +68,8 @@ create table Ocena (
     id_place INT NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (id_user) REFERENCES Uzytkownicy (id),
-    FOREIGN KEY (id_place) REFERENCES Miejsca (id),
-	CONSTRAINT UQ_rating UNIQUE NONCLUSTERED (id_user, id_place)
+    FOREIGN KEY (id_place) REFERENCES Miejsca (id)
+	# CONSTRAINT UQ_rating UNIQUE NONCLUSTERED (id_user, id_place) <- daj mozliwość zmiany oceny w lokalu
     );
     
 create table Logowanie ( 
@@ -84,13 +84,16 @@ create table Logowanie (
 
 CREATE VIEW userInLocationRating AS (
 	select 
-	u.mail as mail, 
-	case when m.nazwa is null then 'is Unchecked' else concat('has checked-in to: ', m.nazwa) end as where_is,
-	o.ocena as rating 
+	u.mail as who,
+    u1.mail as isFriendOf,
+	case when m.nazwa is null then 'is Unchecked' else concat(m.nazwa) end as where_is,
+	case when o.ocena is null then '' else concat(' and ranks his visit as: ', o.ocena) end as rating 
 	from uzytkownicy u 
 	left join lokacja l on l.id_user = u.id 
 	left join miejsca m on m.id = l.id_place 
 	left join ocena o on o.id_user = l.id_user and o.id_place = l.id_place
+    left join relacje r on r.id_user = u.id
+    left join uzytkownicy u1 on  u1.id = r.id_friend
 );
 
 CREATE VIEW messageAuthorRead AS (
