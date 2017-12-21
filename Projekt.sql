@@ -1,5 +1,5 @@
-#create database projektt;
-use projektt;
+#create database pythonProjekt;
+#use pythonProjekt;
 SET FOREIGN_KEY_CHECKS = 0;
 drop table IF EXISTS Uzytkownicy;
 drop table IF EXISTS Miejsca;
@@ -11,6 +11,7 @@ drop table IF EXISTS Logowanie;
 
 drop VIEW IF EXISTS userInLocationRating;
 drop VIEW IF EXISTS messageAuthorRead;
+
 drop trigger IF EXISTS t_deleteUser;
 
 create table Uzytkownicy (
@@ -107,19 +108,6 @@ CREATE VIEW messageAuthorRead AS (
     join uzytkownicy u1 on u1.id = w.id_user
 
 );
-
-/*
-CREATE TRIGGER t_deleteUser
-after delete ON logowanie-- zdarzenie określające kiedy trigger zostanie wyzwolony
- -- tabela na której triger zostanie założony
-FOR EACH ROW 
-	BEGIN
-     DELETE FROM relacje WHERE id_user = (SELECT id FROM uzytkownicy WHERE mail = 'mck');
-	-- skrypt wykonywany przez triger
-	END;
-
-*/
-
 
 
 -- TODO: kursory uruchamiane przy usuwaniu konta - czyszczą pozostałe tabele: logowanie, wiadomości, relacje
